@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鮭魚料理智慧管理系統</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 引入 Babel 用於解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* 自定義滑桿樣式 */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #0f172a;
+            cursor: pointer;
+            margin-top: -8px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-[#F0F2F5]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // --- 圖示組件定義 ---
+        const Icon = ({ path, className }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className}
+            >
+                {path}
+            </svg>
+        );
+
+        const Icons = {
+            Scale: <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z m-10 0 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z M2 21h20 M12 3v18 M12 8H7 M12 8h5" />,
+            ChefHat: <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z M6 17h12" />,
+            Droplets: <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.8-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z M17 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S17.29 6.75 17 5.3c-.29 1.45-1.14 2.8-2.29 3.76S13 11.1 13 12.25c0 2.22 1.8 4.05 4 4.05z" />,
+            ChevronDown: <path d="m6 9 6 6 6-6" />,
+            ChevronUp: <path d="m18 15-6-6-6 6" />,
+            Utensils: <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2 M7 2v20 M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />,
+            Thermometer: <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />,
+            Clock: <path d="M12 6v6l4 2 M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />,
+            BookOpen: <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        };
+
+        const CuteSalmonIcon = ({ className }) => (
+            <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 50C10 30 35 20 60 25C85 30 95 45 90 60C85 75 60 85 35 80C15 75 10 60 10 50Z" fill="#FF8A65" />
+                <path d="M90 60C95 55 98 45 92 35L98 25C98 25 90 30 85 35" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="30" cy="45" r="4" fill="white" />
+                <path d="M25 55C25 55 30 60 35 55" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                <path d="M55 27C55 27 65 20 75 27" fill="#FFAB91" />
+                <path d="M40 79C40 79 50 85 60 80" fill="#FFAB91" />
+            </svg>
+        );
+
+        // --- 主程式 ---
+        const App = () => {
+            const [weight, setWeight] = useState(300);
+            const [expandedId, setExpandedId] = useState('airfryer');
+
+            // 計算調味料份量
+            const saltAmount = (weight * 0.01).toFixed(1); // 1% 鹽
+            
+            // 營養數據
+            const nutrition = useMemo(() => ({
+                protein: (weight * 0.21).toFixed(1),
+                omega3: (weight * 15).toFixed(0),
+                calories: (weight * 2.08).toFixed(0),
+            }), [weight]);
+
+            const recipes = {
+                airfryer: {
+                    id: 'airfryer',
+                    level: '入門',
+                    title: '氣炸鹽烤鮭魚',
+                    status: '外酥內嫩',
+                    baseTime: 11,
+                    temp: '180°C',
+                    tagColor: 'bg-emerald-100 text-emerald-800',
+                    ingredients: [
+                        `鮭魚菲力 ${weight}g`,
+                        `海鹽 ${saltAmount}g (魚重的1%)`,
+                        '黑胡椒 適量',
+                        '橄欖油噴霧 (選用)',
+                        '檸檬角 1塊 (食用時擠)'
+                    ],
+                    steps: [
+                        '【關鍵去腥】從包裝取出鮭魚後，務必使用廚房紙巾將表面水分徹底吸乾，直到紙巾不再濕潤。',
+                        '在魚肉雙面均勻撒上鹽與黑胡椒，輕輕按摩幫助入味。若希望表皮更酥脆，可在魚皮面噴少許橄欖油。',
+                        '【預熱】氣炸鍋設定 180°C 預熱 3 分鐘。',
+                        '將鮭魚「魚皮朝上」放入氣炸籃。設定 180°C，時間設定為上方計算出的建議時間。',
+                        '時間到後，拉出查看表皮是否金黃酥脆。若喜歡更恰的口感，可追加 200°C 氣炸 1-2 分鐘。'
+                    ]
+                },
+                oven: {
+                    id: 'oven',
+                    level: '入門',
+                    title: '紙包奶油烤鮭魚',
+                    status: '鮮甜多汁',
+                    baseTime: 15,
+                    temp: '200°C',
+                    tagColor: 'bg-emerald-100 text-emerald-800',
+                    ingredients: [
+                        `鮭魚菲力 ${weight}g`,
+                        '洋蔥 1/4 顆 (切絲)',
+                        '鴻喜菇/金針菇 1小把',
+                        `無鹽奶油 ${weight > 250 ? '15' : '10'}g`,
+                        '蒜末 1瓣',
+                        '白酒/米酒 1小匙 (選用)',
+                        `鹽 ${saltAmount}g`
+                    ],
+                    steps: [
+                        '【烤箱預熱】烤箱預熱至 200°C。準備一張約 30x30cm 的烘焙紙。',
+                        '【鋪底】在烘焙紙中央鋪上洋蔥絲與菇類，這能防止魚肉沾黏並提供水分。',
+                        '將吸乾水分的鮭魚放在蔬菜床上，撒上鹽、黑胡椒與蒜末，淋上酒，最後在頂部放上奶油塊。',
+                        '【密封】將烘焙紙上下對摺，邊緣仔細摺疊捲起，像包水餃一樣確保密封不漏氣，形成蒸氣循環空間。',
+                        '放入烤箱中層烘烤。出爐後直接整包上桌，小心割開紙包時的熱蒸氣。'
+                    ]
+                },
+                pan: {
+                    id: 'pan',
+                    level: '進階',
+                    title: '嫩煎金黃鮭魚',
+                    status: '梅納反應',
+                    baseTime: 6,
+                    temp: '中火',
+                    tagColor: 'bg-amber-100 text-amber-800',
+                    ingredients: [
+                        `鮭魚菲力 ${weight}g`,
+                        '耐高溫食用油 1大匙',
+                        '新鮮迷迭香/百里香 1株 (增香用)',
+                        '蒜頭 2瓣 (拍扁)',
+                        `鹽 ${saltAmount}g`
+                    ],
+                    steps: [
+                        '【熱鍋】平底鍋下油，開中大火熱鍋，直到油紋出現且微微冒煙。',
+                        '【下鍋】將鮭魚吸乾水分並撒鹽後，魚皮朝下放入鍋中。下鍋後用鍋鏟輕壓魚肉 10 秒，防止魚皮捲縮。',
+                        '轉中火，維持不動煎約總時間的 70% (觀察側面魚肉變白至 2/3 高度)。',
+                        '【翻面】翻面後，加入蒜頭與香草，將鍋子傾斜，用湯匙將熱油淋在魚肉上 (Basting)。',
+                        '煎至熟透後取出，靜置 2-3 分鐘讓肉汁回流再享用。'
+                    ]
+                },
+                steam: {
+                    id: 'steam',
+                    level: '入門',
+                    title: '日式清蒸鮭魚',
+                    status: '低脂健康',
+                    baseTime: 8,
+                    temp: '大火',
+                    tagColor: 'bg-blue-100 text-blue-800',
+                    ingredients: [
+                        `鮭魚菲力 ${weight}g`,
+                        '蔥段 2支',
+                        '薑片 3-4片',
+                        '清酒/米酒 1大匙',
+                        '蒸魚醬油 適量 (起鍋後淋)'
+                    ],
+                    steps: [
+                        '盤底鋪上蔥段與薑片 (架空魚肉利於蒸氣對流)。',
+                        '鮭魚表面抹少許鹽與清酒，放在蔥薑上。',
+                        '蒸鍋水滾後，將魚盤放入，大火蒸煮建議的時間。',
+                        '【測試】用筷子能輕易插入魚肉最厚處即代表熟透。',
+                        '取出倒掉盤中多餘腥水，淋上蒸魚醬油與熱油激發香氣。'
+                    ]
+                },
+                microwave: {
+                    id: 'microwave',
+                    level: '極速',
+                    title: '極速微波鮭魚',
+                    status: '方便省時',
+                    baseTime: 4,
+                    temp: '600W',
+                    tagColor: 'bg-purple-100 text-purple-800',
+                    ingredients: [
+                        `鮭魚菲力 ${weight}g`,
+                        '清酒/水 2大匙',
+                        '鹽 少許',
+                        '黑胡椒 少許'
+                    ],
+                    steps: [
+                        '使用可微波的深盤或專用矽膠盒。',
+                        '放入鮭魚，撒上鹽與胡椒，淋上液體 (水或酒) 以保持濕潤。',
+                        '【加蓋】蓋上微波蓋或保鮮膜 (需留一小孔透氣)。',
+                        '設定 600W 火力。建議分兩次加熱：先微波 2 分鐘，觀察熟度，再以 30 秒為單位追加，避免爆裂或過乾。'
+                    ]
+                },
+                sousvide: {
+                    id: 'sousvide',
+                    level: '專業',
+                    title: '法式低溫舒肥鮭魚',
+                    status: '極致滑順',
+                    baseTime: 45,
+                    temp: '52°C',
+                    tagColor: 'bg-rose-100 text-rose-800',
+                    ingredients: [
+                        `鮭魚菲力 ${weight}g`,
+                        '優質橄欖油 1大匙',
+                        '蒔蘿/香草 適量',
+                        '檸檬皮屑 少許'
+                    ],
+                    steps: [
+                        '設定舒肥棒溫度：52°C (口感軟嫩如布丁) 或 55°C (口感紮實)。',
+                        '將鮭魚與所有醃料放入真空袋或耐熱夾鏈袋，使用排水法排出空氣密封。',
+                        '放入水浴中，計時 45 分鐘 (若魚肉極厚可延長至 1 小時)。',
+                        '【後處理】取出後擦乾表面，可用噴槍或高溫平底鍋快速炙燒表面 30 秒增加香氣，切勿加熱過久以免破壞內部嫩度。'
+                    ]
+                },
+                soup: {
+                    id: 'soup',
+                    level: '剩食',
+                    title: '暖心鮭魚味噌湯',
+                    status: '鮮味濃郁',
+                    baseTime: 10,
+                    temp: '滾水',
+                    tagColor: 'bg-slate-100 text-slate-800',
+                    ingredients: [
+                        `鮭魚切塊 ${weight}g`,
+                        '板豆腐 1/2 盒',
+                        '海帶芽 1小撮',
+                        '味噌 2-3大匙',
+                        '蔥花 適量'
+                    ],
+                    steps: [
+                        '【去腥】燒一鍋熱水，將鮭魚塊快速汆燙 10 秒，表面變白即撈起，洗去雜質。',
+                        '另起一鍋水 (約 800ml)，煮滾後放入豆腐丁與海帶芽。',
+                        '放入處理好的鮭魚塊，轉小火煮 3 分鐘。',
+                        '【調味】熄火 (重要！滾水會破壞味噌風味)。將味噌先用湯勺取少許熱湯化開，再倒入鍋中拌勻。',
+                        '撒上蔥花即可上桌。'
+                    ]
+                },
+                rice: {
+                    id: 'rice',
+                    level: '剩食',
+                    title: '經典鮭魚炒飯',
+                    status: '香噴噴',
+                    baseTime: 7,
+                    temp: '大火',
+                    tagColor: 'bg-slate-100 text-slate-800',
+                    ingredients: [
+                        `鮭魚碎肉 ${weight}g (或吃剩的熟魚)`,
+                        '冷白飯 2碗',
+                        '雞蛋 2顆',
+                        '蔥花 1大把',
+                        '醬油/鹽/白胡椒 適量'
+                    ],
+                    steps: [
+                        '若使用生鮭魚，先將魚肉煎熟弄碎，利用逼出的魚油來炒蛋。',
+                        '將雞蛋打散，下鍋炒至半熟滑嫩狀先取出。',
+                        '利用鍋中餘油 (不夠可補)，下冷飯大火快炒，用壓切方式將飯炒鬆。',
+                        '加入鮭魚碎與雞蛋回鍋翻炒。',
+                        '沿鍋邊淋入一圈醬油嗆鍋，撒上蔥花與白胡椒，大火翻炒均勻即可。'
+                    ]
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-[#F0F2F5] p-3 md:p-8 font-sans">
+                    <div className="max-w-4xl mx-auto">
+                        
+                        {/* Header */}
+                        <div className="bg-white rounded-t-3xl border-b border-slate-100 shadow-sm p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div className="bg-slate-900 p-3 rounded-2xl shrink-0">
+                                    <CuteSalmonIcon className="w-12 h-12 md:w-10 md:h-10" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                                        鮭魚料理<br className="md:hidden"/>智慧管理系統
+                                    </h1>
+                                    <p className="text-slate-400 text-sm font-bold mt-1">使用者：家庭主廚 • {new Date().toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                            <div className="bg-amber-50 border border-amber-200 px-4 py-3 rounded-xl flex items-start gap-3 w-full md:w-auto">
+                                <span className="text-amber-600 text-lg">💡</span>
+                                <span className="text-sm text-amber-900 font-medium leading-relaxed">
+                                    備註：解凍後請吸乾水分，於 <span className="underline decoration-2 underline-offset-4 font-bold text-rose-600">30分鐘內</span> 料理。
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Data Panel */}
+                        <div className="bg-white p-6 grid grid-cols-1 md:grid-cols-4 gap-6 border-b border-slate-100">
+                            <div className="col-span-1 md:col-span-2">
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 block flex items-center gap-2">
+                                    <Icon path={Icons.Scale} className="w-4 h-4" /> 魚肉重量設定 (g)
+                                </label>
+                                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <input 
+                                        type="range" min="100" max="600" step="10" value={weight} 
+                                        onChange={(e) => setWeight(parseInt(e.target.value))}
+                                        className="flex-1 h-3 bg-slate-200 rounded-full appearance-none cursor-pointer"
+                                    />
+                                    <span className="text-3xl font-black min-w-[80px] text-right text-slate-800">{weight}<span className="text-base text-slate-400 ml-1">g</span></span>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 md:col-span-2">
+                                <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1 flex justify-center items-center gap-1">
+                                        <Icon path={Icons.ChefHat} className="w-3 h-3"/> 蛋白質
+                                    </p>
+                                    <p className="text-2xl font-black text-slate-800">{nutrition.protein}<span className="text-sm text-slate-400 ml-1">g</span></p>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1 flex justify-center items-center gap-1">
+                                        <Icon path={Icons.Droplets} className="w-3 h-3"/> Omega-3
+                                    </p>
+                                    <p className="text-2xl font-black text-slate-800">{nutrition.omega3}<span className="text-sm text-slate-400 ml-1">mg</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recipe List */}
+                        <div className="bg-white overflow-hidden shadow-sm min-h-[500px]">
+                            
+                            {/* Desktop Table Header */}
+                            <div className="hidden md:flex bg-[#5C7CFA] text-white px-6 py-4 text-base font-bold">
+                                <div className="w-1/6">推薦等級</div>
+                                <div className="w-2/6">料理名稱</div>
+                                <div className="w-1/6">核心狀態</div>
+                                <div className="w-1/6 text-center">預估時間</div>
+                                <div className="w-1/6 text-right">詳細資訊</div>
+                            </div>
+
+                            <div className="divide-y divide-slate-100">
+                                {Object.values(recipes).map((item) => (
+                                    <div key={item.id} className={`transition-all ${expandedId === item.id ? 'bg-indigo-50/40' : 'bg-white'}`}>
+                                        
+                                        {/* Mobile Card / Desktop Row */}
+                                        <div 
+                                            className="p-5 md:px-6 md:py-5 cursor-pointer hover:bg-slate-50 flex flex-col md:flex-row md:items-center gap-3 md:gap-0"
+                                            onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                                        >
+                                            {/* Mobile Header Row */}
+                                            <div className="flex justify-between items-center md:hidden mb-1">
+                                                <span className="text-sm font-bold text-slate-500">{item.level}</span>
+                                                <span className={`text-xs px-2 py-1 rounded-md font-bold ${item.tagColor}`}>{item.status}</span>
+                                            </div>
+
+                                            {/* Desktop Columns */}
+                                            <div className="hidden md:block md:w-1/6 text-base font-bold text-slate-500">{item.level}</div>
+                                            
+                                            <div className="md:w-2/6">
+                                                <div className="text-xl md:text-lg font-black text-slate-800 flex items-center gap-2">
+                                                    {item.title}
+                                                    <span className="md:hidden text-sm font-normal text-slate-500">({Math.round((weight / 300) * item.baseTime)}分)</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="hidden md:block md:w-1/6">
+                                                <span className={`text-sm px-3 py-1 rounded-full font-bold uppercase ${item.tagColor}`}>
+                                                    {item.status}
+                                                </span>
+                                            </div>
+
+                                            <div className="hidden md:block md:w-1/6 text-center">
+                                                <span className="text-base font-bold text-slate-700">{Math.round((weight / 300) * item.baseTime)} min</span>
+                                            </div>
+
+                                            <div className="flex justify-end md:w-1/6 mt-2 md:mt-0">
+                                                <button className="w-full md:w-auto bg-[#748FFC] hover:bg-[#5C7CFA] text-white px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+                                                    {expandedId === item.id ? <><Icon path={Icons.ChevronUp} className="w-4 h-4" /> 收起</> : <><Icon path={Icons.ChevronDown} className="w-4 h-4" /> 查看詳情</>}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Expanded Detail View */}
+                                        {expandedId === item.id && (
+                                            <div className="px-5 pb-8 md:px-8 md:py-8 bg-slate-50/80 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="grid md:grid-cols-12 gap-6 md:gap-10">
+                                                    
+                                                    {/* Left Col: Ingredients */}
+                                                    <div className="md:col-span-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 h-fit">
+                                                        <h4 className="flex items-center gap-2 font-black text-slate-900 text-lg mb-4 pb-2 border-b border-slate-100">
+                                                            <Icon path={Icons.Utensils} className="w-5 h-5 text-indigo-500" /> 準備食材
+                                                        </h4>
+                                                        <ul className="space-y-3">
+                                                            {item.ingredients.map((ing, i) => (
+                                                                <li key={i} className="flex items-start gap-3 text-base text-slate-700 leading-snug">
+                                                                    <input type="checkbox" className="mt-1 w-4 h-4 rounded border-slate-300 accent-indigo-500 shrink-0" />
+                                                                    <span>{ing}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                        <div className="mt-6 pt-4 border-t border-slate-100">
+                                                            <div className="flex items-center gap-2 text-sm text-slate-500 font-bold mb-1">
+                                                                <Icon path={Icons.Thermometer} className="w-4 h-4" /> 建議溫度: {item.temp}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-sm text-slate-500 font-bold">
+                                                                <Icon path={Icons.Clock} className="w-4 h-4" /> 總時長: {Math.round((weight / 300) * item.baseTime)} 分鐘
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Right Col: Steps */}
+                                                    <div className="md:col-span-8 space-y-6">
+                                                        <div>
+                                                            <h4 className="flex items-center gap-2 font-black text-slate-900 text-lg mb-4">
+                                                                <Icon path={Icons.BookOpen} className="w-5 h-5 text-indigo-500" /> 專業料理步驟
+                                                            </h4>
+                                                            <div className="space-y-4">
+                                                                {item.steps.map((step, i) => (
+                                                                    <div key={i} className="flex gap-4 p-4 bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:border-indigo-200 transition-colors">
+                                                                        <span className="bg-indigo-50 w-8 h-8 flex items-center justify-center rounded-xl text-base font-black text-indigo-600 shrink-0 mt-0.5">{i+1}</span>
+                                                                        <p className="text-base md:text-lg text-slate-700 font-medium leading-relaxed">
+                                                                            {step}
+                                                                        </p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-white rounded-b-3xl p-6 text-center border-t border-slate-100 mt-1">
+                            <p className="text-[10px] font-bold text-slate-300 tracking-[0.3em] uppercase">Salmon Management Protocol v5.1 • Lite Version</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
