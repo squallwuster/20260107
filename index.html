@@ -2,457 +2,354 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>鮭魚料理智慧管理系統</title>
-    <!-- 引入 Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026 新春沖繩・親子自駕之旅</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 React 和 ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- 引入 Babel 用於解析 JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans TC', 'sans-serif'],
+                    },
+                    colors: {
+                        'okinawa-blue': '#4facfe',
+                        'okinawa-sand': '#fdfbf7',
+                        'coral-pink': '#ff8a80',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* 自定義滑桿樣式 */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #0f172a;
-            cursor: pointer;
-            margin-top: -8px;
+        body { 
+            background: #fdfbf7; 
+            -webkit-tap-highlight-color: transparent;
         }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #e2e8f0;
-            border-radius: 2px;
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            bottom: 0;
+            left: 20px;
+            width: 3px; /* Slightly thicker line */
+            background: #e5e7eb;
+            z-index: 0;
+        }
+        /* 隱藏滾動條但保留功能 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="bg-[#F0F2F5]">
-    <div id="root"></div>
+<body class="text-gray-800 antialiased pb-24 text-base" x-data="itinerary()">
 
-    <script type="text/babel">
-        const { useState, useMemo } = React;
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-500 to-cyan-400 text-white sticky top-0 z-50 shadow-lg pb-1">
+        <div class="max-w-md mx-auto px-4 pt-5 pb-3 flex justify-between items-end">
+            <div>
+                <h1 class="text-xl font-bold tracking-wide">2026 沖繩親子行 🇯🇵</h1>
+                <p class="text-sm opacity-90 font-medium mt-1">1/31 - 2/5 ｜ 自駕遊</p>
+            </div>
+            <div class="text-sm text-right opacity-90 font-medium leading-tight">
+                <span class="block">浩語 (1.5Y)</span>
+                <span class="block">爸爸 & 媽媽</span>
+            </div>
+        </div>
 
-        // --- 圖示組件定義 ---
-        const Icon = ({ path, className }) => (
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className={className}
-            >
-                {path}
-            </svg>
-        );
+        <!-- Scrollable Day Tabs (Sticky) -->
+        <div class="flex overflow-x-auto gap-3 px-4 py-3 hide-scrollbar snap-x w-full max-w-md mx-auto bg-white/10 backdrop-blur-sm border-t border-white/20">
+            <template x-for="(day, index) in days" :key="index">
+                <button 
+                    @click="activeDay = index; scrollToTop()"
+                    class="flex-shrink-0 flex flex-col items-center justify-center px-5 py-2 rounded-xl transition-all duration-300 snap-start min-w-[80px]"
+                    :class="activeDay === index 
+                        ? 'bg-white text-blue-600 shadow-md transform scale-105' 
+                        : 'bg-white/20 text-white hover:bg-white/30'"
+                >
+                    <span class="text-xs font-bold uppercase tracking-wider opacity-80" x-text="'DAY ' + (index + 1)"></span>
+                    <span class="text-sm font-bold whitespace-nowrap" x-text="day.shortDate"></span>
+                </button>
+            </template>
+        </div>
+    </header>
 
-        const Icons = {
-            Scale: <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z m-10 0 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z M2 21h20 M12 3v18 M12 8H7 M12 8h5" />,
-            ChefHat: <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z M6 17h12" />,
-            Droplets: <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.8-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z M17 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S17.29 6.75 17 5.3c-.29 1.45-1.14 2.8-2.29 3.76S13 11.1 13 12.25c0 2.22 1.8 4.05 4 4.05z" />,
-            ChevronDown: <path d="m6 9 6 6 6-6" />,
-            ChevronUp: <path d="m18 15-6-6-6 6" />,
-            Utensils: <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2 M7 2v20 M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />,
-            Thermometer: <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />,
-            Clock: <path d="M12 6v6l4 2 M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />,
-            BookOpen: <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-        };
+    <!-- Main Content -->
+    <main class="max-w-md mx-auto px-4 py-6 space-y-6 min-h-[80vh]">
 
-        const CuteSalmonIcon = ({ className }) => (
-            <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 50C10 30 35 20 60 25C85 30 95 45 90 60C85 75 60 85 35 80C15 75 10 60 10 50Z" fill="#FF8A65" />
-                <path d="M90 60C95 55 98 45 92 35L98 25C98 25 90 30 85 35" stroke="white" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="30" cy="45" r="4" fill="white" />
-                <path d="M25 55C25 55 30 60 35 55" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                <path d="M55 27C55 27 65 20 75 27" fill="#FFAB91" />
-                <path d="M40 79C40 79 50 85 60 80" fill="#FFAB91" />
-            </svg>
-        );
+        <!-- Day Title & Info -->
+        <div class="flex items-center justify-between mb-2">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800" x-text="days[activeDay].label"></h2>
+                <p class="text-base text-gray-600 font-medium mt-1" x-text="days[activeDay].title"></p>
+            </div>
+            <!-- Car Info Shortcut -->
+            <div class="bg-blue-50 p-2.5 rounded-xl border border-blue-100 shadow-sm active:bg-blue-100 transition-colors" @click="copyToClipboard('098-856-8877')">
+                <div class="text-xs text-blue-600 font-bold uppercase text-center mb-0.5">OTS Phone</div>
+                <div class="flex items-center justify-center gap-1 text-blue-700 font-mono font-bold text-base">
+                    <span>📞</span>
+                    <span>856-8877</span>
+                </div>
+            </div>
+        </div>
 
-        // --- 主程式 ---
-        const App = () => {
-            const [weight, setWeight] = useState(300);
-            const [expandedId, setExpandedId] = useState('airfryer');
-
-            // 計算調味料份量
-            const saltAmount = (weight * 0.01).toFixed(1); // 1% 鹽
-            
-            // 營養數據
-            const nutrition = useMemo(() => ({
-                protein: (weight * 0.21).toFixed(1),
-                omega3: (weight * 15).toFixed(0),
-                calories: (weight * 2.08).toFixed(0),
-            }), [weight]);
-
-            const recipes = {
-                airfryer: {
-                    id: 'airfryer',
-                    level: '入門',
-                    title: '氣炸鹽烤鮭魚',
-                    status: '外酥內嫩',
-                    baseTime: 11,
-                    temp: '180°C',
-                    tagColor: 'bg-emerald-100 text-emerald-800',
-                    ingredients: [
-                        `鮭魚菲力 ${weight}g`,
-                        `海鹽 ${saltAmount}g (魚重的1%)`,
-                        '黑胡椒 適量',
-                        '橄欖油噴霧 (選用)',
-                        '檸檬角 1塊 (食用時擠)'
-                    ],
-                    steps: [
-                        '【關鍵去腥】從包裝取出鮭魚後，務必使用廚房紙巾將表面水分徹底吸乾，直到紙巾不再濕潤。',
-                        '在魚肉雙面均勻撒上鹽與黑胡椒，輕輕按摩幫助入味。若希望表皮更酥脆，可在魚皮面噴少許橄欖油。',
-                        '【預熱】氣炸鍋設定 180°C 預熱 3 分鐘。',
-                        '將鮭魚「魚皮朝上」放入氣炸籃。設定 180°C，時間設定為上方計算出的建議時間。',
-                        '時間到後，拉出查看表皮是否金黃酥脆。若喜歡更恰的口感，可追加 200°C 氣炸 1-2 分鐘。'
-                    ]
-                },
-                oven: {
-                    id: 'oven',
-                    level: '入門',
-                    title: '紙包奶油烤鮭魚',
-                    status: '鮮甜多汁',
-                    baseTime: 15,
-                    temp: '200°C',
-                    tagColor: 'bg-emerald-100 text-emerald-800',
-                    ingredients: [
-                        `鮭魚菲力 ${weight}g`,
-                        '洋蔥 1/4 顆 (切絲)',
-                        '鴻喜菇/金針菇 1小把',
-                        `無鹽奶油 ${weight > 250 ? '15' : '10'}g`,
-                        '蒜末 1瓣',
-                        '白酒/米酒 1小匙 (選用)',
-                        `鹽 ${saltAmount}g`
-                    ],
-                    steps: [
-                        '【烤箱預熱】烤箱預熱至 200°C。準備一張約 30x30cm 的烘焙紙。',
-                        '【鋪底】在烘焙紙中央鋪上洋蔥絲與菇類，這能防止魚肉沾黏並提供水分。',
-                        '將吸乾水分的鮭魚放在蔬菜床上，撒上鹽、黑胡椒與蒜末，淋上酒，最後在頂部放上奶油塊。',
-                        '【密封】將烘焙紙上下對摺，邊緣仔細摺疊捲起，像包水餃一樣確保密封不漏氣，形成蒸氣循環空間。',
-                        '放入烤箱中層烘烤。出爐後直接整包上桌，小心割開紙包時的熱蒸氣。'
-                    ]
-                },
-                pan: {
-                    id: 'pan',
-                    level: '進階',
-                    title: '嫩煎金黃鮭魚',
-                    status: '梅納反應',
-                    baseTime: 6,
-                    temp: '中火',
-                    tagColor: 'bg-amber-100 text-amber-800',
-                    ingredients: [
-                        `鮭魚菲力 ${weight}g`,
-                        '耐高溫食用油 1大匙',
-                        '新鮮迷迭香/百里香 1株 (增香用)',
-                        '蒜頭 2瓣 (拍扁)',
-                        `鹽 ${saltAmount}g`
-                    ],
-                    steps: [
-                        '【熱鍋】平底鍋下油，開中大火熱鍋，直到油紋出現且微微冒煙。',
-                        '【下鍋】將鮭魚吸乾水分並撒鹽後，魚皮朝下放入鍋中。下鍋後用鍋鏟輕壓魚肉 10 秒，防止魚皮捲縮。',
-                        '轉中火，維持不動煎約總時間的 70% (觀察側面魚肉變白至 2/3 高度)。',
-                        '【翻面】翻面後，加入蒜頭與香草，將鍋子傾斜，用湯匙將熱油淋在魚肉上 (Basting)。',
-                        '煎至熟透後取出，靜置 2-3 分鐘讓肉汁回流再享用。'
-                    ]
-                },
-                steam: {
-                    id: 'steam',
-                    level: '入門',
-                    title: '日式清蒸鮭魚',
-                    status: '低脂健康',
-                    baseTime: 8,
-                    temp: '大火',
-                    tagColor: 'bg-blue-100 text-blue-800',
-                    ingredients: [
-                        `鮭魚菲力 ${weight}g`,
-                        '蔥段 2支',
-                        '薑片 3-4片',
-                        '清酒/米酒 1大匙',
-                        '蒸魚醬油 適量 (起鍋後淋)'
-                    ],
-                    steps: [
-                        '盤底鋪上蔥段與薑片 (架空魚肉利於蒸氣對流)。',
-                        '鮭魚表面抹少許鹽與清酒，放在蔥薑上。',
-                        '蒸鍋水滾後，將魚盤放入，大火蒸煮建議的時間。',
-                        '【測試】用筷子能輕易插入魚肉最厚處即代表熟透。',
-                        '取出倒掉盤中多餘腥水，淋上蒸魚醬油與熱油激發香氣。'
-                    ]
-                },
-                microwave: {
-                    id: 'microwave',
-                    level: '極速',
-                    title: '極速微波鮭魚',
-                    status: '方便省時',
-                    baseTime: 4,
-                    temp: '600W',
-                    tagColor: 'bg-purple-100 text-purple-800',
-                    ingredients: [
-                        `鮭魚菲力 ${weight}g`,
-                        '清酒/水 2大匙',
-                        '鹽 少許',
-                        '黑胡椒 少許'
-                    ],
-                    steps: [
-                        '使用可微波的深盤或專用矽膠盒。',
-                        '放入鮭魚，撒上鹽與胡椒，淋上液體 (水或酒) 以保持濕潤。',
-                        '【加蓋】蓋上微波蓋或保鮮膜 (需留一小孔透氣)。',
-                        '設定 600W 火力。建議分兩次加熱：先微波 2 分鐘，觀察熟度，再以 30 秒為單位追加，避免爆裂或過乾。'
-                    ]
-                },
-                sousvide: {
-                    id: 'sousvide',
-                    level: '專業',
-                    title: '法式低溫舒肥鮭魚',
-                    status: '極致滑順',
-                    baseTime: 45,
-                    temp: '52°C',
-                    tagColor: 'bg-rose-100 text-rose-800',
-                    ingredients: [
-                        `鮭魚菲力 ${weight}g`,
-                        '優質橄欖油 1大匙',
-                        '蒔蘿/香草 適量',
-                        '檸檬皮屑 少許'
-                    ],
-                    steps: [
-                        '設定舒肥棒溫度：52°C (口感軟嫩如布丁) 或 55°C (口感紮實)。',
-                        '將鮭魚與所有醃料放入真空袋或耐熱夾鏈袋，使用排水法排出空氣密封。',
-                        '放入水浴中，計時 45 分鐘 (若魚肉極厚可延長至 1 小時)。',
-                        '【後處理】取出後擦乾表面，可用噴槍或高溫平底鍋快速炙燒表面 30 秒增加香氣，切勿加熱過久以免破壞內部嫩度。'
-                    ]
-                },
-                soup: {
-                    id: 'soup',
-                    level: '剩食',
-                    title: '暖心鮭魚味噌湯',
-                    status: '鮮味濃郁',
-                    baseTime: 10,
-                    temp: '滾水',
-                    tagColor: 'bg-slate-100 text-slate-800',
-                    ingredients: [
-                        `鮭魚切塊 ${weight}g`,
-                        '板豆腐 1/2 盒',
-                        '海帶芽 1小撮',
-                        '味噌 2-3大匙',
-                        '蔥花 適量'
-                    ],
-                    steps: [
-                        '【去腥】燒一鍋熱水，將鮭魚塊快速汆燙 10 秒，表面變白即撈起，洗去雜質。',
-                        '另起一鍋水 (約 800ml)，煮滾後放入豆腐丁與海帶芽。',
-                        '放入處理好的鮭魚塊，轉小火煮 3 分鐘。',
-                        '【調味】熄火 (重要！滾水會破壞味噌風味)。將味噌先用湯勺取少許熱湯化開，再倒入鍋中拌勻。',
-                        '撒上蔥花即可上桌。'
-                    ]
-                },
-                rice: {
-                    id: 'rice',
-                    level: '剩食',
-                    title: '經典鮭魚炒飯',
-                    status: '香噴噴',
-                    baseTime: 7,
-                    temp: '大火',
-                    tagColor: 'bg-slate-100 text-slate-800',
-                    ingredients: [
-                        `鮭魚碎肉 ${weight}g (或吃剩的熟魚)`,
-                        '冷白飯 2碗',
-                        '雞蛋 2顆',
-                        '蔥花 1大把',
-                        '醬油/鹽/白胡椒 適量'
-                    ],
-                    steps: [
-                        '若使用生鮭魚，先將魚肉煎熟弄碎，利用逼出的魚油來炒蛋。',
-                        '將雞蛋打散，下鍋炒至半熟滑嫩狀先取出。',
-                        '利用鍋中餘油 (不夠可補)，下冷飯大火快炒，用壓切方式將飯炒鬆。',
-                        '加入鮭魚碎與雞蛋回鍋翻炒。',
-                        '沿鍋邊淋入一圈醬油嗆鍋，撒上蔥花與白胡椒，大火翻炒均勻即可。'
-                    ]
-                }
-            };
-
-            return (
-                <div className="min-h-screen bg-[#F0F2F5] p-3 md:p-8 font-sans">
-                    <div className="max-w-4xl mx-auto">
-                        
-                        {/* Header */}
-                        <div className="bg-white rounded-t-3xl border-b border-slate-100 shadow-sm p-5 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                <div className="bg-slate-900 p-3 rounded-2xl shrink-0">
-                                    <CuteSalmonIcon className="w-12 h-12 md:w-10 md:h-10" />
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-                                        鮭魚料理<br className="md:hidden"/>智慧管理系統
-                                    </h1>
-                                    <p className="text-slate-400 text-sm font-bold mt-1">使用者：家庭主廚 • {new Date().toLocaleDateString()}</p>
-                                </div>
+        <!-- Day Content with Transition -->
+        <div 
+            x-key="activeDay"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            class="relative timeline-line pl-2 space-y-6"
+        >
+            <template x-for="event in days[activeDay].events" :key="event.time">
+                <div class="relative z-10 pl-8 group">
+                    <!-- Time Dot -->
+                    <div class="absolute left-[14px] top-4 w-4 h-4 bg-blue-400 rounded-full border-2 border-white shadow-sm ring-2 ring-blue-100 group-hover:bg-blue-600 transition-colors"></div>
+                    
+                    <!-- Event Card -->
+                    <div class="glass-card rounded-2xl p-5 active:scale-[0.99] transition-transform duration-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex flex-col gap-1">
+                                <span class="font-mono text-sm font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md w-fit" x-text="event.time"></span>
+                                <h3 class="font-bold text-gray-900 text-xl leading-snug" x-text="event.title"></h3>
                             </div>
-                            <div className="bg-amber-50 border border-amber-200 px-4 py-3 rounded-xl flex items-start gap-3 w-full md:w-auto">
-                                <span className="text-amber-600 text-lg">💡</span>
-                                <span className="text-sm text-amber-900 font-medium leading-relaxed">
-                                    備註：解凍後請吸乾水分，於 <span className="underline decoration-2 underline-offset-4 font-bold text-rose-600">30分鐘內</span> 料理。
-                                </span>
-                            </div>
+                            <span class="text-4xl filter drop-shadow-sm" x-text="event.icon"></span>
                         </div>
 
-                        {/* Data Panel */}
-                        <div className="bg-white p-6 grid grid-cols-1 md:grid-cols-4 gap-6 border-b border-slate-100">
-                            <div className="col-span-1 md:col-span-2">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 block flex items-center gap-2">
-                                    <Icon path={Icons.Scale} className="w-4 h-4" /> 魚肉重量設定 (g)
-                                </label>
-                                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <input 
-                                        type="range" min="100" max="600" step="10" value={weight} 
-                                        onChange={(e) => setWeight(parseInt(e.target.value))}
-                                        className="flex-1 h-3 bg-slate-200 rounded-full appearance-none cursor-pointer"
-                                    />
-                                    <span className="text-3xl font-black min-w-[80px] text-right text-slate-800">{weight}<span className="text-base text-slate-400 ml-1">g</span></span>
-                                </div>
-                            </div>
+                        <!-- Details -->
+                        <div class="space-y-3 text-base">
                             
-                            <div className="grid grid-cols-2 gap-4 md:col-span-2">
-                                <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100">
-                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1 flex justify-center items-center gap-1">
-                                        <Icon path={Icons.ChefHat} className="w-3 h-3"/> 蛋白質
-                                    </p>
-                                    <p className="text-2xl font-black text-slate-800">{nutrition.protein}<span className="text-sm text-slate-400 ml-1">g</span></p>
+                            <!-- Location/Nav (Primary Action) -->
+                            <template x-if="event.nav">
+                                <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(event.nav)" target="_blank" class="flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors bg-gray-50/80 p-3 rounded-xl border border-gray-200 shadow-sm">
+                                    <span class="text-red-500 text-lg">📍</span>
+                                    <span class="font-medium truncate text-base" x-text="event.nav"></span>
+                                    <span class="ml-auto text-xs text-blue-500 font-bold bg-blue-50 px-2 py-1 rounded">GO &rarr;</span>
+                                </a>
+                            </template>
+
+                            <!-- Action Buttons Grid -->
+                            <div class="flex flex-wrap gap-2.5" x-show="event.phone || event.mapCode || event.plusCode">
+                                <!-- Phone -->
+                                <template x-if="event.phone">
+                                    <button @click="copyToClipboard(event.phone)" class="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-green-50 text-green-800 px-4 py-3 rounded-xl border border-green-200 active:bg-green-100 transition-colors shadow-sm">
+                                        <span>☎️</span>
+                                        <span class="font-mono font-bold text-sm" x-text="event.phone"></span>
+                                    </button>
+                                </template>
+
+                                <!-- MapCode -->
+                                <template x-if="event.mapCode">
+                                    <button @click="copyToClipboard(event.mapCode)" class="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-purple-50 text-purple-800 px-4 py-3 rounded-xl border border-purple-200 active:bg-purple-100 transition-colors shadow-sm">
+                                        <span>🗺️</span>
+                                        <span class="font-mono font-bold text-sm truncate" x-text="event.mapCode"></span>
+                                    </button>
+                                </template>
+
+                                <!-- Plus Code -->
+                                <template x-if="event.plusCode">
+                                    <button @click="copyToClipboard(event.plusCode)" class="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-indigo-50 text-indigo-800 px-4 py-3 rounded-xl border border-indigo-200 active:bg-indigo-100 transition-colors shadow-sm">
+                                        <span>🌐</span>
+                                        <span class="font-mono font-bold text-sm" x-text="'Plus Code'"></span>
+                                    </button>
+                                </template>
+                            </div>
+
+                            <!-- Parking Info -->
+                            <template x-if="event.parking">
+                                <div class="text-slate-700 text-sm flex items-start gap-2 bg-slate-100 p-2.5 rounded-lg border border-slate-200">
+                                    <span class="text-lg">🅿️</span>
+                                    <span class="mt-0.5 leading-relaxed font-medium" x-text="event.parking"></span>
                                 </div>
-                                <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100">
-                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1 flex justify-center items-center gap-1">
-                                        <Icon path={Icons.Droplets} className="w-3 h-3"/> Omega-3
-                                    </p>
-                                    <p className="text-2xl font-black text-slate-800">{nutrition.omega3}<span className="text-sm text-slate-400 ml-1">mg</span></p>
+                            </template>
+
+                            <!-- Notes / Strategy -->
+                            <template x-if="event.note">
+                                <div class="mt-3 text-gray-700 text-base leading-relaxed border-l-[5px] border-yellow-400 pl-4 py-2 bg-yellow-50/50 rounded-r-xl">
+                                    <p x-text="event.note" class="whitespace-pre-line"></p>
                                 </div>
-                            </div>
-                        </div>
+                            </template>
 
-                        {/* Recipe List */}
-                        <div className="bg-white overflow-hidden shadow-sm min-h-[500px]">
-                            
-                            {/* Desktop Table Header */}
-                            <div className="hidden md:flex bg-[#5C7CFA] text-white px-6 py-4 text-base font-bold">
-                                <div className="w-1/6">推薦等級</div>
-                                <div className="w-2/6">料理名稱</div>
-                                <div className="w-1/6">核心狀態</div>
-                                <div className="w-1/6 text-center">預估時間</div>
-                                <div className="w-1/6 text-right">詳細資訊</div>
-                            </div>
+                            <!-- Warning -->
+                            <template x-if="event.warning">
+                                <div class="text-red-700 bg-red-50 p-3 rounded-xl text-sm font-medium flex items-start gap-2 border border-red-100">
+                                    <span class="text-lg">⚠️</span>
+                                    <span x-text="event.warning" class="leading-relaxed mt-0.5"></span>
+                                </div>
+                            </template>
 
-                            <div className="divide-y divide-slate-100">
-                                {Object.values(recipes).map((item) => (
-                                    <div key={item.id} className={`transition-all ${expandedId === item.id ? 'bg-indigo-50/40' : 'bg-white'}`}>
-                                        
-                                        {/* Mobile Card / Desktop Row */}
-                                        <div 
-                                            className="p-5 md:px-6 md:py-5 cursor-pointer hover:bg-slate-50 flex flex-col md:flex-row md:items-center gap-3 md:gap-0"
-                                            onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                                        >
-                                            {/* Mobile Header Row */}
-                                            <div className="flex justify-between items-center md:hidden mb-1">
-                                                <span className="text-sm font-bold text-slate-500">{item.level}</span>
-                                                <span className={`text-xs px-2 py-1 rounded-md font-bold ${item.tagColor}`}>{item.status}</span>
-                                            </div>
+                            <!-- Backup Plan -->
+                            <template x-if="event.backup">
+                                <div class="flex items-center gap-2 text-gray-500 text-sm pt-2 border-t border-dashed border-gray-300 mt-2">
+                                    <span class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs font-bold">備案</span>
+                                    <span x-text="event.backup" class="italic"></span>
+                                </div>
+                            </template>
 
-                                            {/* Desktop Columns */}
-                                            <div className="hidden md:block md:w-1/6 text-base font-bold text-slate-500">{item.level}</div>
-                                            
-                                            <div className="md:w-2/6">
-                                                <div className="text-xl md:text-lg font-black text-slate-800 flex items-center gap-2">
-                                                    {item.title}
-                                                    <span className="md:hidden text-sm font-normal text-slate-500">({Math.round((weight / 300) * item.baseTime)}分)</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="hidden md:block md:w-1/6">
-                                                <span className={`text-sm px-3 py-1 rounded-full font-bold uppercase ${item.tagColor}`}>
-                                                    {item.status}
-                                                </span>
-                                            </div>
-
-                                            <div className="hidden md:block md:w-1/6 text-center">
-                                                <span className="text-base font-bold text-slate-700">{Math.round((weight / 300) * item.baseTime)} min</span>
-                                            </div>
-
-                                            <div className="flex justify-end md:w-1/6 mt-2 md:mt-0">
-                                                <button className="w-full md:w-auto bg-[#748FFC] hover:bg-[#5C7CFA] text-white px-6 py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2">
-                                                    {expandedId === item.id ? <><Icon path={Icons.ChevronUp} className="w-4 h-4" /> 收起</> : <><Icon path={Icons.ChevronDown} className="w-4 h-4" /> 查看詳情</>}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Expanded Detail View */}
-                                        {expandedId === item.id && (
-                                            <div className="px-5 pb-8 md:px-8 md:py-8 bg-slate-50/80 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <div className="grid md:grid-cols-12 gap-6 md:gap-10">
-                                                    
-                                                    {/* Left Col: Ingredients */}
-                                                    <div className="md:col-span-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/60 h-fit">
-                                                        <h4 className="flex items-center gap-2 font-black text-slate-900 text-lg mb-4 pb-2 border-b border-slate-100">
-                                                            <Icon path={Icons.Utensils} className="w-5 h-5 text-indigo-500" /> 準備食材
-                                                        </h4>
-                                                        <ul className="space-y-3">
-                                                            {item.ingredients.map((ing, i) => (
-                                                                <li key={i} className="flex items-start gap-3 text-base text-slate-700 leading-snug">
-                                                                    <input type="checkbox" className="mt-1 w-4 h-4 rounded border-slate-300 accent-indigo-500 shrink-0" />
-                                                                    <span>{ing}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                        <div className="mt-6 pt-4 border-t border-slate-100">
-                                                            <div className="flex items-center gap-2 text-sm text-slate-500 font-bold mb-1">
-                                                                <Icon path={Icons.Thermometer} className="w-4 h-4" /> 建議溫度: {item.temp}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-sm text-slate-500 font-bold">
-                                                                <Icon path={Icons.Clock} className="w-4 h-4" /> 總時長: {Math.round((weight / 300) * item.baseTime)} 分鐘
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Right Col: Steps */}
-                                                    <div className="md:col-span-8 space-y-6">
-                                                        <div>
-                                                            <h4 className="flex items-center gap-2 font-black text-slate-900 text-lg mb-4">
-                                                                <Icon path={Icons.BookOpen} className="w-5 h-5 text-indigo-500" /> 專業料理步驟
-                                                            </h4>
-                                                            <div className="space-y-4">
-                                                                {item.steps.map((step, i) => (
-                                                                    <div key={i} className="flex gap-4 p-4 bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:border-indigo-200 transition-colors">
-                                                                        <span className="bg-indigo-50 w-8 h-8 flex items-center justify-center rounded-xl text-base font-black text-indigo-600 shrink-0 mt-0.5">{i+1}</span>
-                                                                        <p className="text-base md:text-lg text-slate-700 font-medium leading-relaxed">
-                                                                            {step}
-                                                                        </p>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="bg-white rounded-b-3xl p-6 text-center border-t border-slate-100 mt-1">
-                            <p className="text-[10px] font-bold text-slate-300 tracking-[0.3em] uppercase">Salmon Management Protocol v5.1 • Lite Version</p>
                         </div>
                     </div>
                 </div>
-            );
-        };
+            </template>
+        </div>
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        <!-- Navigation Footer for Days -->
+        <div class="flex justify-between items-center pt-10 pb-6">
+            <button 
+                x-show="activeDay > 0" 
+                @click="activeDay--; scrollToTop()"
+                class="flex items-center gap-1.5 text-gray-600 font-bold text-base bg-white px-5 py-3 rounded-full shadow-sm border border-gray-200 active:scale-95 transition-transform"
+            >
+                <span>←</span> 上一天
+            </button>
+            <div x-show="activeDay === 0"></div> <!-- Spacer -->
+
+            <button 
+                x-show="activeDay < days.length - 1" 
+                @click="activeDay++; scrollToTop()"
+                class="flex items-center gap-1.5 text-white font-bold text-base bg-blue-600 px-8 py-3 rounded-full shadow-lg shadow-blue-200 active:scale-95 transition-transform ml-auto"
+            >
+                下一天 <span>→</span>
+            </button>
+            
+            <div x-show="activeDay === days.length - 1" class="ml-auto text-center">
+                <span class="text-green-600 font-bold text-base bg-green-50 px-4 py-2 rounded-full border border-green-200">旅程結束 🎉</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div x-show="showToast" x-transition.opacity.duration.300ms class="fixed bottom-12 left-1/2 transform -translate-x-1/2 bg-gray-900/95 backdrop-blur text-white px-6 py-4 rounded-full shadow-2xl text-base z-50 flex items-center gap-3 pointer-events-none whitespace-nowrap">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+        <span class="font-bold tracking-wide">已複製到剪貼簿</span>
+    </div>
+
+    <script>
+        function itinerary() {
+            return {
+                activeDay: 0,
+                showToast: false,
+                scrollToTop() {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                },
+                copyToClipboard(text) {
+                    if (!text) return;
+                    navigator.clipboard.writeText(text).then(() => {
+                        this.showToast = true;
+                        setTimeout(() => this.showToast = false, 2000);
+                    }).catch(err => {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = text;
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            this.showToast = true;
+                            setTimeout(() => this.showToast = false, 2000);
+                        } catch (err) {}
+                        document.body.removeChild(textArea);
+                    });
+                },
+                days: [
+                    {
+                        label: "Day 1",
+                        shortDate: "1/31 (六)",
+                        title: "抵達、燒肉總店、超市補給",
+                        events: [
+                            { time: "08:00", title: "機場接送出發", icon: "🚕" },
+                            { time: "11:40", title: "JX870 星宇起飛", icon: "✈️", note: "💡 機上任務：上飛機在給小孩喝奶。" },
+                            { time: "15:00", title: "領車 OTS 臨空豐崎", icon: "🚗", phone: "098-856-8877", nav: "那霸機場 10A 出口搭接駁車" },
+                            { time: "16:00", title: "伊芸休息站 (下行)", icon: "🍦", phone: "098-968-3553", nav: "伊芸SA 下り", note: "往北唯一看海休息站。買飲料、上廁所。" },
+                            { time: "18:00", title: "Check-in Ala Mahaina", icon: "🏨", phone: "0980-517800", nav: "Ala Mahaina Condo Hotel", parking: "飯店前方即是大平面停車場", note: "⚡️ 動作：先卸行李，幫小孩換衣服。" },
+                            { time: "18:30", title: "晚餐：燒肉本部牧場", icon: "🥩", phone: "0980-51-6777", nav: "燒肉本部牧場 本部店", note: "✅ 狀態：(★已預約) 就在飯店附近。", parking: "店門口有車位，若滿可停隔壁超市", backup: "隔壁 Steak House 88 美雷店" },
+                            { time: "20:00", title: "超市補給 The Big Express", icon: "🛒", phone: "0980-47-5588", nav: "The Big Express Motobu", note: "👩 媽媽任務：就在燒肉店旁。買齊：鮮奶、大瓶水、尿布。" },
+                            { time: "20:30", title: "回旅館 Ala Mahaina", icon: "🌙", phone: "0980-517800", parking: "飯店前方即是大平面停車場" }
+                        ]
+                    },
+                    {
+                        label: "Day 2",
+                        shortDate: "2/1 (日)",
+                        title: "水族館、美食巡禮、古宇利",
+                        events: [
+                            { time: "08:00", title: "飯店早餐", icon: "🍳" },
+                            { time: "08:30", title: "美麗海水族館", icon: "🐋", phone: "0980-48-3748", parking: "海洋博公園 P7 (務必停這裡，離入口最近且有電梯)", note: "💡 攻略：早去是為了直奔「黑潮之海」避開人潮。" },
+                            { time: "09:00", title: "館內路徑", icon: "🚶", note: "觸摸池 ➔ 珊瑚之海 ➔ 熱帶魚之海" },
+                            { time: "09:30", title: "鬼蝠魟餵食", icon: "🦈", note: "📍 地點：熱帶魚之海" },
+                            { time: "10:00", title: "黑潮探險", icon: "🌊", note: "先在 2F 看巨大鯨鯊，接著馬上搭專用電梯上頂樓看「黑潮探險」(水上觀覽)。" },
+                            { time: "11:00", title: "海豚劇場", icon: "🐬", note: "大約 20 分鐘" },
+                            { time: "11:45", title: "午餐：Ucchiya Soba", icon: "🍜", phone: "0980-43-5983", nav: "Okinawa Soba Ucchiya", note: "特色：必點「炙燒軟骨麵」，肉軟嫩。", warning: "新店車機可能無資料，請用 Google 導航", backup: "紀乃川食堂" },
+                            { time: "12:45", title: "買麵包：Pirika", icon: "🍞", nav: "Hokkaido Bakery Pirika", note: "地址：258 Jana, Nakijin (今歸仁)\n特色：北海道小麥麵包。No.1 鹽可頌、北海道可樂。", warning: "下午 2～3 點店休" },
+                            { time: "14:00", title: "吃冰：Gelato Papa", icon: "🍦", phone: "0980-52-8411", nav: "Gelateria Papa", note: "位於屋我地島。牛奶超級強。" },
+                            { time: "14:40", title: "古宇利海洋塔", icon: "🗼", phone: "0980-56-1616", nav: "古宇利海洋塔", note: "全室內行程，搭無人車上山。" },
+                            { time: "17:30", title: "晚餐：うちなー食道", icon: "🍲", phone: "050-5487-3972", nav: "Uchina Shokudo Hanazumi", note: "必點「炙燒軟骨麵」，肉軟嫩。", warning: "若客滿，回飯店樓下商場美食街吃" },
+                            { time: "18:00", title: "回旅館 Ala Mahaina", icon: "🏨", phone: "0980-517800", parking: "飯店前方即是大平面停車場" }
+                        ]
+                    },
+                    {
+                        label: "Day 3",
+                        shortDate: "2/2 (一)",
+                        title: "鐵道火車、漢堡、美國村夕陽",
+                        events: [
+                            { time: "09:00", title: "飯店早餐 + 退房", icon: "🧳" },
+                            { time: "10:00", title: "名護自然動植物公園", icon: "🦝", phone: "0980-52-6348", nav: "Neo Park Okinawa", note: "🚂 特色：門票含搭乘「復古輕軌小火車」。去看小浣熊、餵鳥。" },
+                            { time: "12:00", title: "午餐：A&W 漢堡 (名護店)", icon: "🍔", phone: "0980-54-4909", nav: "A&W 名護店", backup: "若有預約到「百年古家 大家」則吃火鍋" },
+                            { time: "13:30", title: "名護中央公園", icon: "🌸", plusCode: "HXQR+35", nav: "名護中央公園", note: "看櫻花，要走階梯。" },
+                            { time: "15:30", title: "美國村 (Depot Island)", icon: "🎡", mapCode: "33 525 561*66", plusCode: "8Q83+HP", nav: "Depot Island Seaside", parking: "務必搜尋 Seaside，停這棟樓下，上樓就是晚餐餐廳。", note: "🏖️ 玩樂：北谷日落海灘、豬肉蛋飯糰。" },
+                            { time: "17:30", title: "晚餐：Steak House 88", icon: "🥩", nav: "Steak House 88 Seaside", note: "建議先訂位 (指定窗邊)。", backup: "同棟有 Red Lobster 或 The Calif Kitchen" },
+                            { time: "20:15", title: "Check-in Daiwa Roynet 新都心", icon: "🏨", phone: "098-868-9055", plusCode: "6MFW+F4", note: "入口在側面/後方。停車場電話：0120-480-015" }
+                        ]
+                    },
+                    {
+                        label: "Day 4",
+                        shortDate: "2/3 (二)",
+                        title: "公園放電、Rycom 購物",
+                        events: [
+                            { time: "09:30", title: "浦添大公園 (C區)", icon: "🛝", phone: "098-873-0700", plusCode: "7P3J+J4", nav: "Teada Square", warning: "請導航到這個 Plus Code 才是「軟墊遊具區」。不要導到展望台。", backup: "雨天直接去 Rycom" },
+                            { time: "12:00", title: "AEON Rycom 永旺夢樂城", icon: "🛍️", phone: "098-930-0425", nav: "AEON Mall Okinawa Rycom", note: "🛍️ 重點：1F 大水槽、五星級哺乳室。爸爸要去寶可夢中心。" },
+                            { time: "18:30", title: "晚餐：San-A 百貨", icon: "🍽️", nav: "Naha Main Place", note: "走路去。\n🍽️ 三選一：和風亭、Pizza House Jr.、超市熟食。" }
+                        ]
+                    },
+                    {
+                        label: "Day 5",
+                        shortDate: "2/4 (三)",
+                        title: "鬆餅作戰、水族館、國際通",
+                        events: [
+                            { time: "10:15", title: "幸福鬆餅 (瀨長島)", icon: "🥞", plusCode: "5JFR+RP", nav: "瀨長島公共停車場", note: "⚔️ 排隊戰術：\n停好車，爸爸去 No.32 登記。\n媽媽帶小孩去飯店前免費足湯。", backup: "去 iias 吃 Eggs 'n Things (全室內)" },
+                            { time: "12:30", title: "iias / DMM 水族館", icon: "🐠", nav: "DMM Kariyushi Aquarium", note: "商場 2F" },
+                            { time: "15:30", title: "ASHIBINAA Outlet", icon: "👜", phone: "098-891-6000", nav: "Ashibinaa Outlet", note: "就在 iias 隔壁" },
+                            { time: "16:00", title: "回旅館", icon: "🏨", plusCode: "6MFW+F4" },
+                            { time: "18:30", title: "晚餐：國際通", icon: "🍻", note: "交通：車停飯店，搭單軌去牧志站。\n🍽️ 選項：Sam's Sailor Inn、波照間、Yappari Steak" }
+                        ]
+                    },
+                    {
+                        label: "Day 6",
+                        shortDate: "2/5 (四)",
+                        title: "神社、魚市場、回家",
+                        events: [
+                            { time: "09:20", title: "波上宮", icon: "⛩️", phone: "098-863-7300", nav: "若狹海濱公園停車場", note: "💡 攻略：停這裡走樓梯上去就是神社，不用爬大坡。" },
+                            { time: "10:00", title: "泊港魚市場", icon: "🐟", phone: "098-868-1096", plusCode: "6MJJ+2F", note: "🐟 重點：買鮪魚生魚片、熟食烤海鮮。" },
+                            { time: "11:30", title: "OTS 還車 (關鍵!)", icon: "⛽️", phone: "098-856-8877", mapCode: "232 543 532*76", nav: "OTS 臨空豐崎營業所", note: "✨ 加油：導航這裡，旁邊就是 ENEOS，加滿油直接開進隔壁還車。" },
+                            { time: "13:00", title: "那霸機場", icon: "🛫", note: "🍙 採買：國內線 1F 買 PO 飯糰、逛寶可夢。" },
+                            { time: "15:25", title: "JX871 星宇回台灣", icon: "🏠" }
+                        ]
+                    }
+                ]
+            }
+        }
     </script>
 </body>
 </html>
