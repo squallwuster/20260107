@@ -40,7 +40,7 @@
             top: 10px;
             bottom: 0;
             left: 20px;
-            width: 3px; /* Slightly thicker line */
+            width: 3px;
             background: #e5e7eb;
             z-index: 0;
         }
@@ -136,7 +136,7 @@
                             <template x-if="event.nav">
                                 <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(event.nav)" target="_blank" class="flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors bg-gray-50/80 p-3 rounded-xl border border-gray-200 shadow-sm">
                                     <span class="text-red-500 text-lg">📍</span>
-                                    <span class="font-medium truncate text-base" x-text="event.nav"></span>
+                                    <span class="font-medium truncate text-base" x-text="event.navLabel || event.nav"></span>
                                     <span class="ml-auto text-xs text-blue-500 font-bold bg-blue-50 px-2 py-1 rounded">GO &rarr;</span>
                                 </a>
                             </template>
@@ -286,16 +286,16 @@
                         title: "水族館、美食巡禮、古宇利",
                         events: [
                             { time: "08:00", title: "飯店早餐", icon: "🍳" },
-                            { time: "08:30", title: "美麗海水族館", icon: "🐋", phone: "0980-48-3748", parking: "海洋博公園 P7 (務必停這裡，離入口最近且有電梯)", note: "💡 攻略：早去是為了直奔「黑潮之海」避開人潮。" },
+                            { time: "08:30", title: "美麗海水族館", icon: "🐋", phone: "0980-48-3748", nav: "MVVH+4Q 本部町 日本沖繩縣", navLabel: "導航至 P7 停車場", parking: "已設定導航至海洋博公園 P7 (離入口最近)", note: "💡 攻略：早去是為了直奔「黑潮之海」避開人潮。" },
                             { time: "09:00", title: "館內路徑", icon: "🚶", note: "觸摸池 ➔ 珊瑚之海 ➔ 熱帶魚之海" },
                             { time: "09:30", title: "鬼蝠魟餵食", icon: "🦈", note: "📍 地點：熱帶魚之海" },
                             { time: "10:00", title: "黑潮探險", icon: "🌊", note: "先在 2F 看巨大鯨鯊，接著馬上搭專用電梯上頂樓看「黑潮探險」(水上觀覽)。" },
                             { time: "11:00", title: "海豚劇場", icon: "🐬", note: "大約 20 分鐘" },
                             { time: "11:45", title: "午餐：Ucchiya Soba", icon: "🍜", phone: "0980-43-5983", nav: "Okinawa Soba Ucchiya", note: "特色：必點「炙燒軟骨麵」，肉軟嫩。", warning: "新店車機可能無資料，請用 Google 導航", backup: "紀乃川食堂" },
-                            { time: "12:45", title: "買麵包：Pirika", icon: "🍞", nav: "Hokkaido Bakery Pirika", note: "地址：258 Jana, Nakijin (今歸仁)\n特色：北海道小麥麵包。No.1 鹽可頌、北海道可樂。", warning: "下午 2～3 點店休" },
+                            { time: "12:45", title: "買麵包：Pirika", icon: "🍞", nav: "258 Jana, Nakijin, Kunigami District, Okinawa 905-0414日本", navLabel: "Hokkaido Bakery Pirika", note: "特色：北海道小麥麵包。No.1 鹽可頌、北海道可樂。", warning: "下午 2～3 點店休" },
                             { time: "14:00", title: "吃冰：Gelato Papa", icon: "🍦", phone: "0980-52-8411", nav: "Gelateria Papa", note: "位於屋我地島。牛奶超級強。" },
-                            { time: "14:40", title: "古宇利海洋塔", icon: "🗼", phone: "0980-56-1616", nav: "古宇利海洋塔", note: "全室內行程，搭無人車上山。" },
-                            { time: "17:30", title: "晚餐：うちなー食道", icon: "🍲", phone: "050-5487-3972", nav: "Uchina Shokudo Hanazumi", note: "必點「炙燒軟骨麵」，肉軟嫩。", warning: "若客滿，回飯店樓下商場美食街吃" },
+                            { time: "14:40", title: "古宇利海洋塔", icon: "🗼", phone: "0980-56-1616", nav: "M2XF+RJ 今歸仁村 日本沖繩縣", navLabel: "古宇利海洋塔停車場", note: "全室內行程，搭無人車上山。" },
+                            { time: "17:30", title: "晚餐：うちなー食道", icon: "🍲", phone: "050-5487-3972", nav: "434-14 Tancha, Motobu, Kunigami District, Okinawa 905-0213日本", navLabel: "Uchina Shokudo Hanazumi", note: "必點「炙燒軟骨麵」，肉軟嫩。", warning: "若客滿，回飯店樓下商場美食街吃" },
                             { time: "18:00", title: "回旅館 Ala Mahaina", icon: "🏨", phone: "0980-517800", parking: "飯店前方即是大平面停車場" }
                         ]
                     },
@@ -307,10 +307,10 @@
                             { time: "09:00", title: "飯店早餐 + 退房", icon: "🧳" },
                             { time: "10:00", title: "名護自然動植物公園", icon: "🦝", phone: "0980-52-6348", nav: "Neo Park Okinawa", note: "🚂 特色：門票含搭乘「復古輕軌小火車」。去看小浣熊、餵鳥。" },
                             { time: "12:00", title: "午餐：A&W 漢堡 (名護店)", icon: "🍔", phone: "0980-54-4909", nav: "A&W 名護店", backup: "若有預約到「百年古家 大家」則吃火鍋" },
-                            { time: "13:30", title: "名護中央公園", icon: "🌸", plusCode: "HXQR+35", nav: "名護中央公園", note: "看櫻花，要走階梯。" },
+                            { time: "13:30", title: "名護中央公園", icon: "🌸", plusCode: "HXQR+4J", nav: "HXQR+4J 名護市 日本沖繩縣", navLabel: "名護城公園南口駐車場", note: "看櫻花，要走階梯。" },
                             { time: "15:30", title: "美國村 (Depot Island)", icon: "🎡", mapCode: "33 525 561*66", plusCode: "8Q83+HP", nav: "Depot Island Seaside", parking: "務必搜尋 Seaside，停這棟樓下，上樓就是晚餐餐廳。", note: "🏖️ 玩樂：北谷日落海灘、豬肉蛋飯糰。" },
                             { time: "17:30", title: "晚餐：Steak House 88", icon: "🥩", nav: "Steak House 88 Seaside", note: "建議先訂位 (指定窗邊)。", backup: "同棟有 Red Lobster 或 The Calif Kitchen" },
-                            { time: "20:15", title: "Check-in Daiwa Roynet 新都心", icon: "🏨", phone: "098-868-9055", plusCode: "6MFW+F4", note: "入口在側面/後方。停車場電話：0120-480-015" }
+                            { time: "20:15", title: "Check-in Daiwa Roynet 新都心", icon: "🏨", phone: "098-868-9055", nav: "6MFW+F4 那霸市 日本沖繩縣", navLabel: "導航至停車場入口", note: "入口在側面/後方。停車場電話：0120-480-015" }
                         ]
                     },
                     {
@@ -318,7 +318,7 @@
                         shortDate: "2/3 (二)",
                         title: "公園放電、Rycom 購物",
                         events: [
-                            { time: "09:30", title: "浦添大公園 (C區)", icon: "🛝", phone: "098-873-0700", plusCode: "7P3J+J4", nav: "Teada Square", warning: "請導航到這個 Plus Code 才是「軟墊遊具區」。不要導到展望台。", backup: "雨天直接去 Rycom" },
+                            { time: "09:30", title: "浦添大公園 (C區)", icon: "🛝", phone: "098-873-0700", plusCode: "7P3J+J4", nav: "7P3J+J4 浦添市 日本沖繩縣", navLabel: "導航至 C區停車場", warning: "請務必導航到此地址才是「軟墊遊具區」。不要導到展望台。", backup: "雨天直接去 Rycom" },
                             { time: "12:00", title: "AEON Rycom 永旺夢樂城", icon: "🛍️", phone: "098-930-0425", nav: "AEON Mall Okinawa Rycom", note: "🛍️ 重點：1F 大水槽、五星級哺乳室。爸爸要去寶可夢中心。" },
                             { time: "18:30", title: "晚餐：San-A 百貨", icon: "🍽️", nav: "Naha Main Place", note: "走路去。\n🍽️ 三選一：和風亭、Pizza House Jr.、超市熟食。" }
                         ]
@@ -341,7 +341,7 @@
                         title: "神社、魚市場、回家",
                         events: [
                             { time: "09:20", title: "波上宮", icon: "⛩️", phone: "098-863-7300", nav: "若狹海濱公園停車場", note: "💡 攻略：停這裡走樓梯上去就是神社，不用爬大坡。" },
-                            { time: "10:00", title: "泊港魚市場", icon: "🐟", phone: "098-868-1096", plusCode: "6MJJ+2F", note: "🐟 重點：買鮪魚生魚片、熟食烤海鮮。" },
+                            { time: "10:00", title: "泊港魚市場", icon: "🐟", phone: "098-868-1096", nav: "1 Chome-1-18 Minatomachi, Naha, Okinawa 900-0001日本", navLabel: "泊港魚市場", note: "🐟 重點：買鮪魚生魚片、熟食烤海鮮。" },
                             { time: "11:30", title: "OTS 還車 (關鍵!)", icon: "⛽️", phone: "098-856-8877", mapCode: "232 543 532*76", nav: "OTS 臨空豐崎營業所", note: "✨ 加油：導航這裡，旁邊就是 ENEOS，加滿油直接開進隔壁還車。" },
                             { time: "13:00", title: "那霸機場", icon: "🛫", note: "🍙 採買：國內線 1F 買 PO 飯糰、逛寶可夢。" },
                             { time: "15:25", title: "JX871 星宇回台灣", icon: "🏠" }
